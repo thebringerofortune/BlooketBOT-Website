@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blooket Bot</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:400,700|Titan+One">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+            font-family: 'Titan One', serif;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .text-tools {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .tool-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .tool-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .tool-btn {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .tool-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            word-break: break-all;
+            min-height: 50px;
+            display: none;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .output.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Blooket Tools</h1>
+        <p class="subtitle">Game ID & Name Tools</p>
+        
+        <div class="input-group">
+            <label for="gameId">Game ID:</label>
+            <input type="text" id="gameId" placeholder="Enter Blooket game ID">
+        </div>
+        
+        <div class="input-group">
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName" placeholder="Enter your player name">
+        </div>
+        
+        <button onclick="joinGame()">Join Game</button>
+        
+        <div class="text-tools">
+            <div class="tool-section">
+                <h3>✨ Text Transformers</h3>
+                <p class="subtitle" style="margin-bottom: 15px;">Transform your text into different styles</p>
+                <div class="tool-buttons">
+                    <button class="tool-btn" onclick="transformText('flip')">🔄 Flip Text</button>
+                    <button class="tool-btn" onclick="transformText('mirror')">🪞 Mirror Text</button>
+                    <button class="tool-btn" onclick="transformText('creepify')">👻 Creepify</button>
+                    <button class="tool-btn" onclick="transformText('tiny')">🤏 Tiny Caps</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-group" style="margin-top: 30px;">
+            <label for="transformInput">Text to Transform:</label>
+            <input type="text" id="transformInput" placeholder="Enter text here">
+        </div>
+        
+        <div class="output" id="output"></div>
+    </div>
+    
+    <script src="lunicode.js"></script>
+    <script>
+        function joinGame() {
+            const gameId = document.getElementById('gameId').value;
+            const playerName = document.getElementById('playerName').value;
+            
+            if (!gameId || !playerName) {
+                alert('Please enter both Game ID and Player Name');
+                return;
+            }
+            
+            alert(`Game ID: ${gameId}\nPlayer Name: ${playerName}\n\nNote: Actual game joining requires backend API integration.`);
+            console.log('Game ID:', gameId, 'Player Name:', playerName);
+        }
+        
+        function transformText(tool) {
+            const input = document.getElementById('transformInput').value;
+            const output = document.getElementById('output');
+            
+            if (!input) {
+                alert('Please enter text to transform');
+                return;
+            }
+            
+            let result = input;
+            const lunicode = new Lunicode();
+            
+            try {
+                switch(tool) {
+                    case 'flip':
+                        result = lunicode.tools.flip.encode(input);
+                        break;
+                    case 'mirror':
+                        result = lunicode.tools.mirror.encode(input);
+                        break;
+                    case 'creepify':
+                        result = lunicode.tools.creepify.encode(input);
+                        break;
+                    case 'tiny':
+                        result = lunicode.tools.tiny.encode(input);
+                        break;
+                }
+                
+                output.textContent = result;
+                output.classList.add('active');
+            } catch(e) {
+                alert('Error transforming text: ' + e.message);
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>
