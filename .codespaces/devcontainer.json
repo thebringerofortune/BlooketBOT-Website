@@ -1,0 +1,15 @@
+.codespace.yml
+# This file configures your GitHub Codespace environment
+
+tasks:
+  - init: |
+      echo "Setting up Blooket Bot Manager..."
+      cd backend
+      npm install
+      echo "✅ Setup complete! Run 'npm start' to begin."
+    command: npm start
+    
+forwardPorts:
+  - 3000
+
+remoteUser: codespace

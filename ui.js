@@ -1,35 +1,190 @@
-// UI and Event Handlers
+// ui.js - Updated for backend integration
 
-async function spawnBots() {
-    const gameId = document.getElementById('gameId').value;
-    const botCount = parseInt(document.getElementById('botCount').value);
-    const botNamePrefix = document.getElementById('botNamePrefix').value || 'Bot';
-    const actionDelay = parseInt(document.getElementById('actionDelay').value);
-    
-    await botManager.spawnBots(gameId, botCount, botNamePrefix, actionDelay);
-}
+const API_URL = window.location.origin; // Use same origin for API
 
-async function killAllBots() {
-    const confirmed = confirm('Are you sure you want to kill all bots?');
-    if (confirmed) {
-        await botManager.killAllBots();
+class RemoteBotManager {
+    constructor() {
+        this.botIds = [];
+        this.isSpawning = false;
+    }
+
+    async spawnBots() {
+        const gameId = document.getElementById('gameId').value;
+        const botCount = parseInt(document.getElementById('botCount').value);
+        const botNamePrefix = document.getElementById('botNamePrefix').value || 'Bot';
+        const actionDelay = parseInt(document.getElementById('actionDelay').value);
+        
+        if (!gameId.trim()) {
+            alert('Please enter a game code');
+            return;
+        }
+
+        if (this.isSpawning) {
+            alert('Already spawning bots');
+            return;
+        }
+
+        this.isSpawning = true;
+
+        try {
+            log(`🤖 Spawning ${botCount} bots for game ${gameId}...`, 'info');
+            
+            const response = await fetch(`${API_URL}/api/spawn-bots`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gameCode: gameId.trim().toLowerCase(),
+                    count: botCount,
+                    namePrefix: botNamePrefix,
+                    spawnDelay: actionDelay
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.botIds = data.botIds || [];
+                log(`✅ ${data.message}`, 'success');
+            } else {
+                log(`❌ Error: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            log(`❌ Network error: ${error.message}`, 'error');
+        } finally {
+            this.isSpawning = false;
+            updateUI();
+        }
+    }
+
+    async sendMessageToAll() {
+        const message = document.getElementById('chatMessage').value;
+        
+        if (!message.trim()) {
+            alert('Please enter a message');
+            return;
+        }
+
+        if (this.botIds.length === 0) {
+            log('❌ No bots spawned', 'error');
+            return;
+        }
+
+        try {
+            log(`📨 Sending message to ${this.botIds.length} bots...`, 'info');
+            
+            const response = await fetch(`${API_URL}/api/send-message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                log(`✅ ${data.results.success}/${data.results.total} bots sent message`, 'success');
+            } else {
+                log(`❌ Error: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            log(`❌ Network error: ${error.message}`, 'error');
+        }
+    }
+
+    async sendAnswerToAll() {
+        const answer = document.getElementById('answerText').value;
+        
+        if (!answer.trim()) {
+            alert('Please enter an answer');
+            return;
+        }
+
+        if (this.botIds.length === 0) {
+            log('❌ No bots spawned', 'error');
+            return;
+        }
+
+        try {
+            log(`🎯 Sending answer to ${this.botIds.length} bots...`, 'info');
+            
+            const response = await fetch(`${API_URL}/api/send-answer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                log(`✅ ${data.results.success}/${data.results.total} bots answered`, 'success');
+            } else {
+                log(`❌ Error: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            log(`❌ Network error: ${error.message}`, 'error');
+        }
+    }
+
+    async killAllBots() {
+        if (this.botIds.length === 0) {
+            log('No bots to kill', 'info');
+            return;
+        }
+
+        const confirmed = confirm(`Kill all ${this.botIds.length} bots?`);
+        if (!confirmed) return;
+
+        try {
+            log(`🔪 Killing all bots...`, 'info');
+            
+            const response = await fetch(`${API_URL}/api/kill-all`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.botIds = [];
+                log(`✅ All bots terminated`, 'success');
+            } else {
+                log(`❌ Error: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            log(`❌ Network error: ${error.message}`, 'error');
+        }
+        
+        updateUI();
+    }
+
+    async getStatus() {
+        try {
+            const response = await fetch(`${API_URL}/api/bots`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching status:', error);
+            return null;
+        }
     }
 }
 
-async function sendChatMessage() {
-    const message = document.getElementById('chatMessage').value;
-    
-    if (!message.trim()) {
-        alert('Please enter a message');
-        return;
-    }
-    
-    await botManager.sendMessageToAll(message);
+const botManager = new RemoteBotManager();
+
+// Event handlers
+function spawnBots() {
+    botManager.spawnBots();
 }
 
-async function spamChat() {
+function killAllBots() {
+    botManager.killAllBots();
+}
+
+function sendChatMessage() {
+    botManager.sendMessageToAll();
+}
+
+function spamChat() {
     const message = document.getElementById('chatMessage').value;
-    
     if (!message.trim()) {
         alert('Please enter a message to spam');
         return;
@@ -44,33 +199,23 @@ async function spamChat() {
         return;
     }
     
-    log(`🔊 Starting spam: ${spamCount} messages`, 'info');
+    botManager.sendMessageToAll(); // First message
     
-    for (let i = 0; i < spamCount; i++) {
-        await botManager.sendMessageToAll(`[${i + 1}/${spamCount}] ${message}`);
-        await new Promise(resolve => setTimeout(resolve, 300));
+    for (let i = 1; i < spamCount; i++) {
+        setTimeout(() => botManager.sendMessageToAll(), i * 300);
     }
-    
-    log('✅ Spam complete', 'success');
 }
 
-async function sendAnswer() {
-    const answer = document.getElementById('answerText').value;
-    
-    if (!answer.trim()) {
-        alert('Please enter an answer');
-        return;
-    }
-    
-    await botManager.sendAnswerToAll(answer);
+function sendAnswer() {
+    botManager.sendAnswerToAll();
 }
 
-async function randomAnswer() {
+function randomAnswer() {
     const answers = ['A', 'B', 'C', 'D'];
-    const randomAnswer = answers[Math.floor(Math.random() * answers.length)];
-    
-    log(`🎲 Random answer selected: ${randomAnswer}`, 'info');
-    await botManager.sendAnswerToAll(randomAnswer);
+    const randomAns = answers[Math.floor(Math.random() * answers.length)];
+    document.getElementById('answerText').value = randomAns;
+    log(`🎲 Random answer selected: ${randomAns}`, 'info');
+    botManager.sendAnswerToAll();
 }
 
 function transformText(tool) {
@@ -116,18 +261,66 @@ function copyToMessage() {
     
     if (text) {
         document.getElementById('chatMessage').value = text;
-        alert('Text copied to message field!');
+        alert('✅ Text copied to message field!');
     }
 }
 
-function updateUI() {
-    // Update bot list
+const consoleLogs = [];
+const MAX_LOGS = 100;
+
+function log(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = { message, type, timestamp };
+    consoleLogs.push(logEntry);
+    
+    if (consoleLogs.length > MAX_LOGS) {
+        consoleLogs.shift();
+    }
+    
+    renderConsole();
+    console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+function renderConsole() {
+    const consoleEl = document.getElementById('console');
+    consoleEl.innerHTML = consoleLogs
+        .map(entry => {
+            let className = 'output-info';
+            if (entry.type === 'success') className = 'output-success';
+            if (entry.type === 'error') className = 'output-error';
+            
+            return `<div class="output-line ${className}">[${entry.timestamp}] ${entry.message}</div>`;
+        })
+        .join('');
+    
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+function clearConsole() {
+    consoleLogs.length = 0;
+    renderConsole();
+}
+
+// Poll for status updates
+setInterval(async () => {
+    const status = await botManager.getStatus();
+    if (status) {
+        updateBotDisplay(status);
+    }
+}, 2000);
+
+function updateBotDisplay(status) {
+    document.getElementById('statTotal').textContent = status.total;
+    document.getElementById('statActive').textContent = status.connected;
+    document.getElementById('statConnecting').textContent = status.connecting;
+    document.getElementById('statFailed').textContent = status.failed;
+
     const botListEl = document.getElementById('botList');
     
-    if (botManager.bots.length === 0) {
+    if (status.bots.length === 0) {
         botListEl.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">No bots spawned yet</div>';
     } else {
-        botListEl.innerHTML = botManager.bots
+        botListEl.innerHTML = status.bots
             .map((bot, index) => {
                 let statusClass = 'status-disconnected';
                 if (bot.status === 'connected') statusClass = 'status-connected';
@@ -135,28 +328,24 @@ function updateUI() {
                 
                 let botClass = 'bot-item';
                 if (bot.status === 'connected') botClass += ' active';
-                if (bot.status === 'disconnected') botClass += ' error';
+                if (bot.status === 'failed') botClass += ' error';
                 
                 return `
                     <div class="${botClass}">
-                        <strong>Bot #${index + 1}: ${bot.botName}</strong>
+                        <strong>${bot.username}</strong>
                         <span class="bot-status ${statusClass}">${bot.status.toUpperCase()}</span>
+                        ${bot.error ? `<small style="color: #f85032;"> - ${bot.error}</small>` : ''}
                     </div>
                 `;
             })
             .join('');
     }
-    
-    // Update statistics
-    const stats = botManager.getStats();
-    document.getElementById('statTotal').textContent = stats.total;
-    document.getElementById('statActive').textContent = stats.active;
-    document.getElementById('statConnecting').textContent = stats.connecting;
-    document.getElementById('statFailed').textContent = stats.failed;
 }
 
-// Initial UI render
-updateUI();
+function updateUI() {
+    // UI already updates via polling
+}
 
-// Log initial message
-log('🎮 Blooket Bot Manager loaded. Ready to spawn bots!', 'info');
+// Initial setup
+log('🚀 Blooket Bot Manager loaded and ready!', 'success');
+log('📝 Enter game code and click "Spawn Bots" to start', 'info');
